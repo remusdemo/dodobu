@@ -1,0 +1,487 @@
+from flask import Flask, request
+import psycopg2
+import os
+import uuid
+from datetime import datetime, timedelta
+
+app = Flask(__name__)
+
+
+# ----------------------------
+# DB CONNECTION
+# ----------------------------
+
+def get_conn():
+
+    DATABASE_URL = os.getenv("DATABASE_URL")
+
+    if DATABASE_URL:
+        return psycopg2.connect(DATABASE_URL)
+
+    return psycopg2.connect(
+        host=os.getenv("DB_HOST", "db"),
+        database=os.getenv("DB_NAME", "dodobu"),
+        user=os.getenv("DB_USER", "postgres"),
+        password=os.getenv("DB_PASSWORD", "postgres"),
+    )
+
+
+# ----------------------------
+# HELPERS
+# ----------------------------
+
+def compute_next_send(event_date):
+    return event_date - timedelta(days=1)
+
+
+def create_event_token(conn, account_id, event_id):
+
+    cur = conn.cursor()
+
+    token = str(uuid.uuid4())
+
+    expires_at = datetime.utcnow() + timedelta(hours=48)
+
+    cur.execute("""
+        INSERT INTO event_link_token(
+            account_id,
+            event_id,
+            token,
+            expires_at
+        )
+        VALUES (%s, %s, %s, %s)
+    """, (
+        account_id,
+        event_id,
+        token,
+        expires_at
+    ))
+
+    cur.close()
+
+    return token
+
+
+def build_event_email(email, event, token):
+
+    link = f"http://localhost:5000/event/new/{token}"
+
+    body = f"""
+Reminder Event
+
+Description: {event['description']}
+Event date: {event['event_date']}
+Next reminder: {event['next_send_date']}
+
+---
+
+Create a new event:
+{link}
+
+⚠ This link expires in 48 hours
+"""
+
+    return {
+        "to": email,
+        "subject": f"Reminder: {event['description']}",
+        "body": body
+    }
+
+
+# ----------------------------
+# ROUTES
+# ----------------------------
+
+@app.route("/")
+def home():
+
+    return """
+    <h1>Reminder MVP</h1>
+
+    <form action="/submit" method="POST">
+
+        <input
+            name="email"
+            placeholder="email"
+            required
+        />
+
+        <br/><br/>
+
+        <input
+            name="description"
+            placeholder="event description"
+            required
+        />
+
+        <br/><br/>
+
+        <input
+            name="date"
+            placeholder="YYYY-MM-DD"
+            required
+        />
+
+        <br/><br/>
+
+        <button type="submit">
+            Create Event
+        </button>
+
+    </form>
+    """
+
+
+@app.route("/submit", methods=["POST"])
+def submit():
+
+    conn = None
+    cur = None
+
+    try:
+
+        email = request.form["email"]
+        description = request.form["description"]
+        date_str = request.form["date"]
+
+        event_date = datetime.strptime(
+            date_str,
+            "%Y-%m-%d"
+        )
+
+        next_send_date = compute_next_send(
+            event_date
+        )
+
+        conn = get_conn()
+        cur = conn.cursor()
+
+        # ----------------------------
+        # ACCOUNT
+        # ----------------------------
+
+        cur.execute(
+            "SELECT id FROM account WHERE email=%s",
+            (email,)
+        )
+
+        acc = cur.fetchone()
+
+        if acc:
+
+            account_id = acc[0]
+
+        else:
+
+            cur.execute("""
+                INSERT INTO account(
+                    email,
+                    is_verified
+                )
+                VALUES (%s, FALSE)
+                RETURNING id
+            """, (email,))
+
+            account_id = cur.fetchone()[0]
+
+        # ----------------------------
+        # EVENT
+        # ----------------------------
+
+        cur.execute("""
+            INSERT INTO event(
+                account_id,
+                description,
+                event_date,
+                next_send_date
+            )
+            VALUES (%s, %s, %s, %s)
+            RETURNING id
+        """, (
+            account_id,
+            description,
+            event_date,
+            next_send_date
+        ))
+
+        event_id = cur.fetchone()[0]
+
+        # ----------------------------
+        # TOKEN
+        # ----------------------------
+
+        token = create_event_token(
+            conn,
+            account_id,
+            event_id
+        )
+
+        email_payload = build_event_email(
+            email,
+            {
+                "description": description,
+                "event_date": event_date,
+                "next_send_date": next_send_date
+            },
+            token
+        )
+
+        conn.commit()
+
+        return f"""
+        <h2>Event created ✅</h2>
+
+        <a href="/test-event/{event_id}">
+            Preview Email
+        </a>
+        """
+
+    except Exception as e:
+
+        if conn:
+            conn.rollback()
+
+        return {
+            "error": str(e)
+        }, 500
+
+    finally:
+
+        if cur:
+            cur.close()
+
+        if conn:
+            conn.close()
+
+
+@app.route("/test-event/<int:event_id>")
+def test_event(event_id):
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT
+            e.description,
+            e.event_date,
+            e.next_send_date,
+            a.email,
+            a.id
+        FROM event e
+        JOIN account a
+            ON a.id = e.account_id
+        WHERE e.id=%s
+    """, (event_id,))
+
+    row = cur.fetchone()
+
+    if not row:
+        return "<h1>Event not found ❌</h1>"
+
+    description, event_date, next_send_date, email, account_id = row
+
+    token = create_event_token(
+        conn,
+        account_id,
+        event_id
+    )
+
+    email_payload = build_event_email(
+        email,
+        {
+            "description": description,
+            "event_date": event_date,
+            "next_send_date": next_send_date
+        },
+        token
+    )
+
+    conn.commit()
+
+    cur.close()
+    conn.close()
+
+    return f"""
+    <h1>Email Preview</h1>
+
+    <h3>TO: {email_payload['to']}</h3>
+
+    <h3>SUBJECT: {email_payload['subject']}</h3>
+
+    <pre>{email_payload['body']}</pre>
+    """
+
+
+@app.route("/event/new/<token>", methods=["GET", "POST"])
+def create_event_from_token(token):
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    # ----------------------------
+    # VALIDATE TOKEN
+    # ----------------------------
+
+    cur.execute("""
+        SELECT
+            account_id,
+            expires_at,
+            used_at
+        FROM event_link_token
+        WHERE token=%s
+    """, (token,))
+
+    row = cur.fetchone()
+
+    if not row:
+
+        cur.close()
+        conn.close()
+
+        return "<h1>Invalid token ❌</h1>"
+
+    account_id, expires_at, used_at = row
+
+    if used_at:
+
+        cur.close()
+        conn.close()
+
+        return "<h1>Token already used ❌</h1>"
+
+    if expires_at < datetime.utcnow():
+
+        cur.close()
+        conn.close()
+
+        return "<h1>Token expired ❌</h1>"
+
+    # ----------------------------
+    # GET FORM
+    # ----------------------------
+
+    if request.method == "GET":
+
+        cur.close()
+        conn.close()
+
+        return """
+        <h1>Create New Event</h1>
+
+        <form method="POST">
+
+            <input
+                name="description"
+                placeholder="event description"
+                required
+            />
+
+            <br/><br/>
+
+            <input
+                name="date"
+                placeholder="YYYY-MM-DD"
+                required
+            />
+
+            <br/><br/>
+
+            <button type="submit">
+                Create Event
+            </button>
+
+        </form>
+        """
+
+    # ----------------------------
+    # VALIDATE AGAIN
+    # ----------------------------
+
+    cur.execute("""
+        SELECT
+            used_at,
+            expires_at
+        FROM event_link_token
+        WHERE token=%s
+    """, (token,))
+
+    row = cur.fetchone()
+
+    used_at, expires_at = row
+
+    if used_at:
+
+        cur.close()
+        conn.close()
+
+        return "<h1>Token already used ❌</h1>"
+
+    if expires_at < datetime.utcnow():
+
+        cur.close()
+        conn.close()
+
+        return "<h1>Token expired ❌</h1>"
+
+    # ----------------------------
+    # CREATE EVENT
+    # ----------------------------
+
+    description = request.form["description"]
+
+    date_str = request.form["date"]
+
+    event_date = datetime.strptime(
+        date_str,
+        "%Y-%m-%d"
+    )
+
+    next_send_date = compute_next_send(
+        event_date
+    )
+
+    cur.execute("""
+        INSERT INTO event(
+            account_id,
+            description,
+            event_date,
+            next_send_date
+        )
+        VALUES (%s, %s, %s, %s)
+    """, (
+        account_id,
+        description,
+        event_date,
+        next_send_date
+    ))
+
+    # ----------------------------
+    # CONSUME TOKEN
+    # ----------------------------
+
+    cur.execute("""
+        UPDATE event_link_token
+        SET used_at=NOW()
+        WHERE token=%s
+    """, (token,))
+
+    conn.commit()
+
+    cur.close()
+    conn.close()
+
+    return "<h1>Event created ! ✅</h1>"
+
+
+# ----------------------------
+# BOOT
+# ----------------------------
+
+if __name__ == "__main__":
+
+    port = int(os.getenv("PORT", 5000))
+
+    app.run(
+        host="0.0.0.0",
+        port=port
+    )

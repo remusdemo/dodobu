@@ -1,0 +1,43 @@
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_DB: dodobu
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  liquibase:
+    image: docker.io/liquibase/liquibase:latest
+    depends_on:
+      - db
+    volumes:
+      - ./db/changelog:/liquibase/changelog
+      - ./db/liquibase-lib:/liquibase/lib
+    working_dir: /liquibase
+    command: >
+      liquibase
+      --driver=org.postgresql.Driver
+      --classpath=/liquibase/lib/postgresql.jar
+      --url=jdbc:postgresql://db:5432/dodobu
+      --searchPath=/liquibase/changelog
+      --changeLogFile=master.xml
+      --username=postgres
+      --password=postgres
+      update
+
+volumes:
+  postgres_data:
