@@ -12,9 +12,9 @@ services:
     image: postgres:16
     restart: always
     environment:
-      POSTGRES_DB: dodobu
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
@@ -32,11 +32,11 @@ services:
       liquibase
       --driver=org.postgresql.Driver
       --classpath=/liquibase/lib/postgresql.jar
-      --url=jdbc:postgresql://db:5432/dodobu
+      --url=jdbc:postgresql://${DB_HOST}:5432/${DB_NAME}
       --searchPath=/liquibase/changelog
       --changeLogFile=master.xml
-      --username=postgres
-      --password=postgres
+      --username=${DB_USER}
+      --password=${DB_PASSWORD}
       update
 
 volumes:

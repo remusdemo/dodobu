@@ -9,11 +9,11 @@ async function request(url, options) {
   return data;
 }
 
-export function createEvent({ email, description, date }) {
+export function createEvent({ email, description, date, schedule }) {
   return request(`${BASE}/events`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, description, date }),
+    body: JSON.stringify({ email, description, date, schedule }),
   });
 }
 
@@ -21,11 +21,11 @@ export function validateToken(token) {
   return request(`${BASE}/tokens/${token}`);
 }
 
-export function createEventFromToken(token, { description, date }) {
+export function createEventFromToken(token, { description, date, schedule }) {
   return request(`${BASE}/events/from-token/${token}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ description, date }),
+    body: JSON.stringify({ description, date, schedule }),
   });
 }
 
@@ -39,4 +39,16 @@ export function getVersion() {
 
 export function getEmailPreview(eventId) {
   return request(`${BASE}/events/${eventId}/preview`);
+}
+
+export function getEvent(eventId, token) {
+  return request(`${BASE}/events/${eventId}?token=${encodeURIComponent(token)}`);
+}
+
+export function deleteEvent(eventId, token) {
+  return request(`${BASE}/events/${eventId}/delete`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+  });
 }

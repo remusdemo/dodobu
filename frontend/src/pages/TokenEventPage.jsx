@@ -1,11 +1,18 @@
 import { useEffect, useState } from "react";
 import { validateToken, createEventFromToken } from "../api";
 
+const SCHEDULE_LABELS = {
+  "0d": "Day of event only",
+  "1d,0d": "1 day before + day of",
+  "3d,1d,0d": "3 days, 1 day before + day of",
+};
+
 export default function TokenEventPage({ token }) {
   const [validation, setValidation] = useState({ loading: true });
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(null);
+  const [schedule, setSchedule] = useState("1d,0d");
 
   useEffect(() => {
     validateToken(token)
@@ -28,7 +35,7 @@ export default function TokenEventPage({ token }) {
     setError(null);
     setSubmitting(true);
     try {
-      const result = await createEventFromToken(token, { description, date });
+      const result = await createEventFromToken(token, { description, date, schedule });
       setDone(result);
     } catch (err) {
       setError(err.message);
@@ -46,10 +53,18 @@ export default function TokenEventPage({ token }) {
       <div>
         <h2>Event created!</h2>
 
-        <h3>Reminder email will be sent:</h3>
-        <p><strong>TO:</strong> {done.reminder_preview.to}</p>
-        <p><strong>SUBJECT:</strong> {done.reminder_preview.subject}</p>
-        <pre>{done.reminder_preview.body}</pre>
+        {done.schedule_entries && done.schedule_entries.length > 0 && (
+          <>
+            <p>Scheduled reminders:</p>
+            <ul>
+              {done.schedule_entries.map((e, i) => (
+                <li key={i}>{e.label} — {e.send_at}</li>
+              ))}
+            </ul>
+          </>
+        )}
+
+        <a href="/">Create another event</a>
       </div>
     );
   }
@@ -63,6 +78,12 @@ export default function TokenEventPage({ token }) {
       <input id="desc" placeholder="event description" required />
       <br /><br />
       <input id="date" type="date" required />
+      <br /><br />
+      <select value={schedule} onChange={(e) => setSchedule(e.target.value)}>
+        {Object.entries(SCHEDULE_LABELS).map(([key, label]) => (
+          <option key={key} value={key}>{label}</option>
+        ))}
+      </select>
       <br /><br />
       <button type="button" onClick={handleCreate} disabled={submitting}>
         {submitting ? "Creating..." : "Create Event"}

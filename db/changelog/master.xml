@@ -8,5 +8,6 @@
 
     <include file="001-init.xml" relativeToChangelogFile="true"/>
     <include file="002-verification-token.xml" relativeToChangelogFile="true"/>
+    <include file="003-schedule.xml" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>

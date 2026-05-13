@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="
+        http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
+
+    <changeSet id="add-schedule-jsonb" author="remy">
+        <addColumn tableName="event">
+            <column name="schedule" type="JSONB">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="drop-next-send-date" author="remy">
+        <dropColumn tableName="event" columnName="next_send_date"/>
+    </changeSet>
+
+    <changeSet id="create-event-schedule" author="remy">
+        <createTable tableName="event_schedule">
+            <column name="id" type="SERIAL">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="event_id" type="INTEGER">
+                <constraints nullable="false" foreignKeyName="fk_event_schedule_event" references="event(id)"/>
+            </column>
+            <column name="send_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status"
+                    type="TEXT"
+                    defaultValue="pending">
+                <constraints nullable="false"/>
+            </column>
+            <column name="sent_at" type="TIMESTAMP"/>
+            <column name="created_at"
+                    type="TIMESTAMP"
+                    defaultValueComputed="NOW()"/>
+        </createTable>
+    </changeSet>
+
+</databaseChangeLog>

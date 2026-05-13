@@ -10,7 +10,7 @@ def send_email(to, subject, body):
     resend.api_key = Config.RESEND_API_KEY
 
     resend.Emails.send({
-        "from": "onboarding@resend.dev",
+        "from": Config.EMAIL_FROM,
         "to": to,
         "subject": subject,
         "text": body,

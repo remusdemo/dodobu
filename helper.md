@@ -43,3 +43,41 @@ podman compose up --build web
 podman compose up -d db
 podman compose run --rm liquibase
 podman compose up --build web
+
+# Worker (process pending reminders)
+podman compose up --build -d web && podman compose exec web python worker.py
+
+
+
+## Railway cron (prod)
+# Railway dashboard → Cron Jobs → Add:
+#   command: python worker.py
+#   schedule: */5 * * * *
+
+# Railway production deploy
+
+## Setup (one time)
+# 1. Push repo to GitHub
+# 2. Create Railway project from GitHub repo
+# 3. Add PostgreSQL service in Railway UI
+# 4. Railway injects DATABASE_URL automatically
+# 5. Set env vars in Railway:
+#    - APP_BASE_URL (your Railway domain)
+#    - RESEND_API_KEY
+
+## Run migrations against production
+# Liquibase connects through Railway's tunnel — no public DB needed.
+# It reads databasechangelog on prod and only runs pending changesets.
+railway run -- \
+  docker run --rm \
+    -v ./db/changelog:/liquibase/changelog \
+    -v ./db/liquibase-lib:/liquibase/lib \
+    liquibase/liquibase \
+    --driver=org.postgresql.Driver \
+    --classpath=/liquibase/lib/postgresql.jar \
+    --url="jdbc:postgresql://${PGHOST}:${PGPORT:-5432}/${PGDATABASE}" \
+    --searchPath=/liquibase/changelog \
+    --changeLogFile=master.xml \
+    --username="${PGUSER}" \
+    --password="${PGPASSWORD}" \
+    update

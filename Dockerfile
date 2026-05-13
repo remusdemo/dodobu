@@ -17,7 +17,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend/ backend/
 COPY --from=frontend /build/dist frontend/dist/
+COPY db/ db/
+COPY start.sh .
+COPY worker.py .
+RUN chmod +x start.sh
 
 EXPOSE 5000
 
-CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-5000} backend.app:app"]
+CMD ["./start.sh"]

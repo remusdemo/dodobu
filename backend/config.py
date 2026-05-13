@@ -20,3 +20,4 @@ class Config:
     PORT = int(os.getenv("PORT", 5000))
     APP_BASE_URL = os.getenv("APP_BASE_URL", "http://localhost:5000")
     RESEND_API_KEY = os.getenv("RESEND_API_KEY")
+    EMAIL_FROM = os.getenv("EMAIL_FROM", "onboarding@resend.dev")

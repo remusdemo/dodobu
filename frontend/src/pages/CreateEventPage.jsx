@@ -1,11 +1,18 @@
 import { useEffect, useState } from "react";
 import { createEvent, getVersion } from "../api";
 
+const SCHEDULE_LABELS = {
+  "0d": "Day of event only",
+  "1d,0d": "1 day before + day of",
+  "3d,1d,0d": "3 days, 1 day before + day of",
+};
+
 export default function CreateEventPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [version, setVersion] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [schedule, setSchedule] = useState("1d,0d");
 
   useEffect(() => {
     getVersion().then((v) => setVersion(v.version)).catch(() => {});
@@ -28,7 +35,7 @@ export default function CreateEventPage() {
     setError(null);
     setLoading(true);
     try {
-      const result = await createEvent({ email, description, date });
+      const result = await createEvent({ email, description, date, schedule });
       setSuccess(result);
     } catch (err) {
       setError(err.message);
@@ -40,19 +47,24 @@ export default function CreateEventPage() {
   if (success) {
     return (
       <div>
-        <h2>Verify your email to activate the reminder</h2>
+        <h2>Check your email to confirm</h2>
 
-        <h3>Validation email sent:</h3>
-        <p><strong>TO:</strong> {success.validation_email.to}</p>
-        <p><strong>SUBJECT:</strong> {success.validation_email.subject}</p>
-        <pre>{success.validation_email.body}</pre>
+        {success.schedule_entries && success.schedule_entries.length > 0 && (
+          <>
+            <p>Scheduled reminders:</p>
+            <ul>
+              {success.schedule_entries.map((e, i) => (
+                <li key={i}>{e.label} — {e.send_at}</li>
+              ))}
+            </ul>
+          </>
+        )}
 
-        <hr />
+        {(!success.schedule_entries || success.schedule_entries.length === 0) && (
+          <p>All reminder dates are in the past — no reminders will be sent.</p>
+        )}
 
-        <h3>Reminder email (will be sent after verification):</h3>
-        <p><strong>TO:</strong> {success.reminder_preview.to}</p>
-        <p><strong>SUBJECT:</strong> {success.reminder_preview.subject}</p>
-        <pre>{success.reminder_preview.body}</pre>
+        <a href="/">Create another event</a>
       </div>
     );
   }
@@ -68,6 +80,12 @@ export default function CreateEventPage() {
       <input id="desc" placeholder="event description" required />
       <br /><br />
       <input id="date" type="date" required />
+      <br /><br />
+      <select value={schedule} onChange={(e) => setSchedule(e.target.value)}>
+        {Object.entries(SCHEDULE_LABELS).map(([key, label]) => (
+          <option key={key} value={key}>{label}</option>
+        ))}
+      </select>
       <br /><br />
       <button type="button" onClick={handleCreate} disabled={loading}>
         {loading ? "Creating..." : "Create Event"}
