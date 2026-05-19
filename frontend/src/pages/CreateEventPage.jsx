@@ -4,7 +4,7 @@ import { createEvent, getVersion, resendVerification } from "../api";
 const SCHEDULE_LABELS = {
   "0d": "Day of event only",
   "1d,0d": "1 day before + day of",
-  "3d,1d,0d": "3 days, 1 day before + day of",
+  "7d,3d,0d": "7 days, 3 days before + day of",
 };
 
 export default function CreateEventPage() {
@@ -120,7 +120,7 @@ export default function CreateEventPage() {
 
   return (
     <div className="page">
-      <h1>Reminder MVP</h1>
+      <h1><img src="/dodobu.png" alt="" class="home-icon" /> Create a reminder</h1>
 
       {error && <p className="msg msg-err">{error}</p>}
 

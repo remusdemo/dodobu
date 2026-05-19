@@ -13,7 +13,8 @@ body {
   padding: 40px 20px;
 }
 
-h1 { font-size: 1.4rem; margin: 0 0 16px; }
+h1 { font-size: 1.4rem; margin: 0 0 16px; display: flex; align-items: center; gap: 10px; }
+.home-icon { width: 48px; height: 48px; }
 h2 { font-size: 1.15rem; margin: 0 0 12px; }
 
 input, textarea, select {

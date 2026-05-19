@@ -9,9 +9,9 @@ SCHEDULE_OPTIONS = {
         {"offset": "-1d", "label": "1 day before"},
         {"offset": "0d", "label": "day of"},
     ],
-    "3d,1d,0d": [
+    "7d,3d,0d": [
+        {"offset": "-7d", "label": "7 days before"},
         {"offset": "-3d", "label": "3 days before"},
-        {"offset": "-1d", "label": "1 day before"},
         {"offset": "0d", "label": "day of"},
     ],
 }
