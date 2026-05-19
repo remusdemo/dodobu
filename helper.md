@@ -80,3 +80,6 @@ railway vars -s worker-cron
 ## add new var
 railway variable set DATABASE_URL='${{Postgres.DATABASE_URL}}' -s worker-cron
 railway variable set SERVICE_ROLE=worker -s worker-cron
+
+## service logs
+railway logs -s worker-cron --previous --tail 50
