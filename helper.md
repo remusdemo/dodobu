@@ -67,3 +67,16 @@ railway up -s dodobu
 
 3. Quick sanity check
   curl -sS --connect-timeout 5 --max-time 10 https://memobud.com/api/version
+
+
+# Railway recipes
+
+## deploy service
+railway up -s worker-cron
+
+## service vars
+railway vars -s worker-cron
+
+## add new var
+railway variable set DATABASE_URL='${{Postgres.DATABASE_URL}}' -s worker-cron
+railway variable set SERVICE_ROLE=worker -s worker-cron
