@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createEvent, getVersion } from "../api";
+import { createEvent, getVersion, resendVerification } from "../api";
 
 const SCHEDULE_LABELS = {
   "0d": "Day of event only",
@@ -10,9 +10,12 @@ const SCHEDULE_LABELS = {
 export default function CreateEventPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [needsVerification, setNeedsVerification] = useState(null);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSent, setResendSent] = useState(false);
   const [version, setVersion] = useState(null);
   const [success, setSuccess] = useState(null);
-  const [schedule, setSchedule] = useState("1d,0d");
+  const [schedule, setSchedule] = useState("0d");
 
   useEffect(() => {
     getVersion().then((v) => setVersion(v.version)).catch(() => {});
@@ -33,20 +36,66 @@ export default function CreateEventPage() {
     if (!email || !description || !date) return;
 
     setError(null);
+    setNeedsVerification(null);
+    setResendSent(false);
     setLoading(true);
     try {
       const result = await createEvent({ email, description, date, schedule });
       setSuccess(result);
     } catch (err) {
-      setError(err.message);
+      if (err.data?.needs_verification) {
+        setNeedsVerification(err.data.email);
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }
   }
 
-  if (success) {
+  async function handleResend() {
+    setResendLoading(true);
+    setResendSent(false);
+    try {
+      await resendVerification(needsVerification);
+      setResendSent(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setResendLoading(false);
+    }
+  }
+
+  if (needsVerification) {
     return (
-      <div>
+      <div className="page">
+        <h2>Please verify your email to create more reminders.</h2>
+
+        {resendSent && <p className="msg msg-ok">Verification email sent!</p>}
+        {error && <p className="msg msg-err">{error}</p>}
+
+        <button className="btn" type="button" onClick={handleResend} disabled={resendLoading}>
+          {resendLoading ? "Sending..." : "Resend verification email"}
+        </button>
+
+        <br /><br />
+        <a className="link" href="/">Back</a>
+      </div>
+    );
+  }
+
+  if (success) {
+    if (success.validation_email) {
+      return (
+        <div className="page">
+          <h2>Confirm your email</h2>
+          <p>Check your inbox to validate your first reminder and create new ones.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="page">
         <h2>Check your email to confirm</h2>
 
         {success.schedule_entries && success.schedule_entries.length > 0 && (
@@ -64,38 +113,30 @@ export default function CreateEventPage() {
           <p>All reminder dates are in the past — no reminders will be sent.</p>
         )}
 
-        <a href="/">Create another event</a>
+        <a className="link" href="/">Create another event</a>
       </div>
     );
   }
 
   return (
-    <div>
+    <div className="page">
       <h1>Reminder MVP</h1>
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {error && <p className="msg msg-err">{error}</p>}
 
-      <input id="email" placeholder="email" required />
-      <br /><br />
-      <input id="desc" placeholder="event description" required />
-      <br /><br />
+      <input id="email" placeholder="Email" required />
+      <textarea id="desc" placeholder="Event description" required />
       <input id="date" type="date" required />
-      <br /><br />
       <select value={schedule} onChange={(e) => setSchedule(e.target.value)}>
         {Object.entries(SCHEDULE_LABELS).map(([key, label]) => (
           <option key={key} value={key}>{label}</option>
         ))}
       </select>
-      <br /><br />
-      <button type="button" onClick={handleCreate} disabled={loading}>
+      <button className="btn" type="button" onClick={handleCreate} disabled={loading} style={{ marginTop: 8 }}>
         {loading ? "Creating..." : "Create Event"}
       </button>
 
-      {version && (
-        <p style={{ fontSize: "0.75rem", color: "#999", marginTop: "2rem" }}>
-          v{version}
-        </p>
-      )}
+      {version && <p className="version">v{version}</p>}
     </div>
   );
 }

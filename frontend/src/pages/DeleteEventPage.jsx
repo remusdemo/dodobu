@@ -26,35 +26,35 @@ export default function DeleteEventPage({ eventId, token }) {
   }
 
   if (state.loading) {
-    return <p>Loading...</p>;
+    return <div className="page"><p>Loading...</p></div>;
   }
 
   if (state.error) {
-    return <p style={{ color: "red" }}>{state.error}</p>;
+    return <div className="page"><p className="msg msg-err">{state.error}</p></div>;
   }
 
   if (state.deleted) {
     return (
-      <div>
+      <div className="page">
         <h2>Event deleted</h2>
         <p>The event &ldquo;{state.event.description}&rdquo; has been deleted. No more reminders will be sent.</p>
-        <a href="/">Create a new event</a>
+        <a className="link" href="/">Create a new event</a>
       </div>
     );
   }
 
   return (
-    <div>
+    <div className="page">
       <h2>Delete event</h2>
       <p>Do you want to delete event &ldquo;{state.event.description}&rdquo;?</p>
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {error && <p className="msg msg-err">{error}</p>}
 
-      <button type="button" onClick={handleDelete} disabled={deleting}>
+      <button className="btn btn-danger" type="button" onClick={handleDelete} disabled={deleting}>
         {deleting ? "Deleting..." : "Confirm delete"}
       </button>
       {" "}
-      <a href="/">Cancel</a>
+      <a className="link" href="/">Cancel</a>
     </div>
   );
 }

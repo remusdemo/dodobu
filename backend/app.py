@@ -17,11 +17,21 @@ def create_app():
         os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
     )
 
+    _routes = ["", "verify/", "event/", "token/", "manage/"]
+    if Config.TESTING_ENABLED:
+        _routes.append("testing/page/")
+    FRONTEND_ROUTES = tuple(_routes)
+
     @app.route("/", defaults={"path": ""})
     @app.route("/<path:path>")
     def serve_frontend(path):
         if path.startswith("api/"):
             return {"error": "Not found"}, 404
+
+        # Only serve SPA for known frontend route prefixes
+        if not any(path == r.rstrip("/") or path.startswith(r) for r in FRONTEND_ROUTES):
+            return {"error": "Not found"}, 404
+
         file_path = os.path.join(static_dir, path) if path else os.path.join(static_dir, "index.html")
         if path and os.path.exists(file_path):
             return send_from_directory(static_dir, path)

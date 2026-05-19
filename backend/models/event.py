@@ -1,10 +1,10 @@
-def create_event(conn, account_id, description, event_date, schedule):
+def create_event(conn, account_id, description, event_date, schedule, status="pending_verification"):
     cur = conn.cursor()
     cur.execute("""
-        INSERT INTO event (account_id, description, event_date, schedule)
-        VALUES (%s, %s, %s, %s)
+        INSERT INTO event (account_id, description, event_date, schedule, status)
+        VALUES (%s, %s, %s, %s, %s)
         RETURNING id
-    """, (account_id, description, event_date, schedule))
+    """, (account_id, description, event_date, schedule, status))
     event_id = cur.fetchone()[0]
     cur.close()
     return event_id
@@ -69,6 +69,28 @@ def soft_delete_event(conn, event_id):
         """, (event_id,))
     cur.close()
     return deleted > 0
+
+
+def get_account_events(conn, account_id, limit=50):
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT id, description, event_date, status
+        FROM event
+        WHERE account_id = %s AND deleted_at IS NULL
+        ORDER BY event_date ASC, id ASC
+        LIMIT %s
+    """, (account_id, limit))
+    rows = cur.fetchall()
+    cur.close()
+    return [
+        {
+            "id": r[0],
+            "description": r[1],
+            "event_date": r[2].strftime("%Y-%m-%d") if r[2] else None,
+            "status": r[3],
+        }
+        for r in rows
+    ]
 
 
 def get_event_with_account(conn, event_id):

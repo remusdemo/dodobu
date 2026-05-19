@@ -4,7 +4,10 @@ async function request(url, options) {
   const res = await fetch(url, options);
   const data = await res.json();
   if (!res.ok) {
-    throw new Error(data.error || `Request failed (${res.status})`);
+    const err = new Error(data.error || `Request failed (${res.status})`);
+    err.data = data;
+    err.status = res.status;
+    throw err;
   }
   return data;
 }
@@ -45,6 +48,14 @@ export function getEvent(eventId, token) {
   return request(`${BASE}/events/${eventId}?token=${encodeURIComponent(token)}`);
 }
 
+export function resendVerification(email) {
+  return request(`${BASE}/verify/resend`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+}
+
 export function deleteEvent(eventId, token) {
   return request(`${BASE}/events/${eventId}/delete`, {
     method: "POST",
@@ -52,3 +63,28 @@ export function deleteEvent(eventId, token) {
     body: JSON.stringify({ token }),
   });
 }
+
+export function requestSecurityCode(token) {
+  return request(`${BASE}/tokens/${token}/request-code`, { method: "POST" });
+}
+
+export function createEventWithCode(token, { description, date, schedule, code }) {
+  return request(`${BASE}/tokens/${token}/create-event`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ description, date, schedule, code }),
+  });
+}
+
+export function getManageEvents(token) {
+  return request(`${BASE}/manage/${token}`);
+}
+
+export function verifyCode(token, code) {
+  return request(`${BASE}/tokens/${token}/verify-code`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code }),
+  });
+}
+

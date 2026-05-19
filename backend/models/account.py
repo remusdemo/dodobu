@@ -38,3 +38,14 @@ def verify_account_by_token(conn, token):
     row = cur.fetchone()
     cur.close()
     return row[0] if row else None
+
+
+def get_verification_token_by_email(conn, email):
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT verification_token FROM account WHERE email = %s AND is_verified = FALSE",
+        (email,),
+    )
+    row = cur.fetchone()
+    cur.close()
+    return row[0] if row else None

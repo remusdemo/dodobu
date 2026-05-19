@@ -18,6 +18,7 @@ class Config:
     DB_USER = os.getenv("DB_USER", "postgres")
     DB_PASSWORD = os.getenv("DB_PASSWORD", "postgres")
     PORT = int(os.getenv("PORT", 5000))
+    TESTING_ENABLED = os.getenv("TESTING_ENABLED", "0") == "1"
     APP_BASE_URL = os.getenv("APP_BASE_URL", "http://localhost:5000")
     RESEND_API_KEY = os.getenv("RESEND_API_KEY")
     EMAIL_FROM = os.getenv("EMAIL_FROM", "onboarding@resend.dev")
