@@ -59,3 +59,7 @@ docker exec -it fb70ca33d7ec psql -U postgres -d postgres
 ## liquibase
 
 liquibase --url="$DATABASE_URL" --changeLogFile=db/changelog/master.xml update
+
+## verify container hosts
+docker exec -it 1887b24308b2 sh -c "getent hosts postgres"
+fd51:73bc:2441::2 postgres
