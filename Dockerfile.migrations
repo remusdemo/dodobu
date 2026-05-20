@@ -4,4 +4,4 @@ WORKDIR /app
 
 COPY . /app
 
-CMD ["sh", "/start-liquibase.sh"]
+CMD ["./start-liquibase.sh"]
