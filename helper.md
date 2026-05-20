@@ -48,38 +48,14 @@ podman compose up --build web
 podman compose up --build -d web && podman compose exec web python worker.py
 
 
+# Droplet recipes
 
-## Railway cron (prod)
-# Railway dashboard → Cron Jobs → Add:
-#   command: python worker.py
-#   schedule: */5 * * * *
+## Connect to DB
 
-# Railway production deploy
+DATABASE_URL=postgresql://<user>:<password>@<host>:<port>/<database>
 
-railway login
+docker exec -it fb70ca33d7ec psql -U postgres -d postgres
 
-1. Run migration if DB changed
+## liquibase
 
-railway_liquibase.sh
-
-2. Deploy to Railway
-railway up -s dodobu
-
-3. Quick sanity check
-  curl -sS --connect-timeout 5 --max-time 10 https://memobud.com/api/version
-
-
-# Railway recipes
-
-## deploy service
-railway up -s worker-cron
-
-## service vars
-railway vars -s worker-cron
-
-## add new var
-railway variable set DATABASE_URL='${{Postgres.DATABASE_URL}}' -s worker-cron
-railway variable set SERVICE_ROLE=worker -s worker-cron
-
-## service logs
-railway logs -s worker-cron --previous --tail 50
+liquibase --url="$DATABASE_URL" --changeLogFile=db/changelog/master.xml update

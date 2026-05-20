@@ -3,9 +3,10 @@ FROM eclipse-temurin:17-jdk-jammy
 RUN apt-get update && apt-get install -y wget bash unzip
 
 # Install Liquibase
-RUN wget https://github.com/liquibase/liquibase/releases/download/v4.25.1/liquibase-4.25.1.tar.gz \
- && tar -xzf liquibase-4.25.1.tar.gz -C /opt \
- && mv /opt/liquibase-4.25.1 /opt/liquibase
+RUN wget -O liquibase.tar.gz https://github.com/liquibase/liquibase/releases/download/v4.25.1/liquibase-4.25.1.tar.gz \
+ && mkdir -p /opt/liquibase \
+ && tar -xzf liquibase.tar.gz -C /opt/liquibase --strip-components=1 \
+ && rm liquibase.tar.gz
 
 ENV PATH="/opt/liquibase:${PATH}"
 
