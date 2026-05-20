@@ -1,12 +1,19 @@
 FROM liquibase/liquibase:4.25
 
+# Switch to root so we can install packages
+USER root
+
+# Install PostgreSQL client (psql)
+RUN apt-get update && apt-get install -y postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /liquibase
 
-# copy migrations
+# Copy migrations
 COPY db /liquibase/db
 
-# copy script (NO chmod step)
+# Copy startup script
 COPY start-liquibase.sh /start-liquibase.sh
 
-# IMPORTANT: override entrypoint safely
+# No chmod needed (we execute via sh)
 ENTRYPOINT ["/bin/sh", "/start-liquibase.sh"]
