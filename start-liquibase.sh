@@ -1,11 +1,13 @@
 #!/bin/sh
 
-set -e
+echo "container alive"
+sleep infinity
 
-liquibase \
-  --url="$LIQUIBASE_COMMAND_URL" \
-  --username="$LIQUIBASE_COMMAND_USERNAME" \
-  --password="$LIQUIBASE_COMMAND_PASSWORD" \
-  --changeLogFile=db/changelog/master.xml \
-  update
-  
+#set -e
+
+#liquibase \
+#  --url="$LIQUIBASE_COMMAND_URL" \
+#  --username="$LIQUIBASE_COMMAND_USERNAME" \
+#  --password="$LIQUIBASE_COMMAND_PASSWORD" \
+#  --changeLogFile=db/changelog/master.xml \
+#  update
