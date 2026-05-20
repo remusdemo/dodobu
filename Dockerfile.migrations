@@ -1,0 +1,14 @@
+FROM openjdk:17-slim
+
+RUN apt-get update && apt-get install -y wget bash
+
+# Install Liquibase
+RUN wget https://github.com/liquibase/liquibase/releases/download/v4.25.1/liquibase-4.25.1.tar.gz \
+ && tar -xzf liquibase-4.25.1.tar.gz -C /opt \
+ && ln -s /opt/liquibase/liquibase /usr/local/bin/liquibase
+
+WORKDIR /app
+
+COPY . /app
+
+CMD ["sh", "-c", "liquibase --changeLogFile=db/changelog/master.xml update"]
