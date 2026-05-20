@@ -52,10 +52,12 @@ podman compose up --build -d web && podman compose exec web python worker.py
 
 ## Connect to DB
 
-DATABASE_URL=postgresql://<user>:<password>@<host>:<port>/<database>
-
+# reset pwd
 docker exec -it fb70ca33d7ec psql -U postgres -d postgres
+ALTER USER postgres WITH PASSWORD 'new_password';
+docker restart fb70ca33d7ec
 
+Test withing db-container : PGPASSWORD="new_password" psql -h 127.0.0.1 -U postgres -d postgres -c "select 1;"
 ## liquibase
 
 liquibase --url="$DATABASE_URL" --changeLogFile=db/changelog/master.xml update
