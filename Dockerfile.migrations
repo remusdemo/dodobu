@@ -1,12 +1,12 @@
 FROM liquibase/liquibase:4.25
 
-# Copy migration files
 WORKDIR /liquibase
+
+# copy migrations
 COPY db /liquibase/db
 
-# Copy entry script
+# copy script (NO chmod step)
 COPY start-liquibase.sh /start-liquibase.sh
-RUN chmod +x /start-liquibase.sh
 
-# IMPORTANT: override liquibase entrypoint completely
+# IMPORTANT: override entrypoint safely
 ENTRYPOINT ["/bin/sh", "/start-liquibase.sh"]
